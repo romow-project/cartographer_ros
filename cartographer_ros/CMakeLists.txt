@@ -66,7 +66,7 @@ pkg_search_module(CAIRO REQUIRED cairo>=1.12.16)
 
 # Library
 # Use SHARED library to ensure proper symbol resolution
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME} STATIC
   src/abseil_compat.cpp
   src/assets_writer.cpp
   src/map_builder_bridge.cpp
