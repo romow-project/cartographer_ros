@@ -52,6 +52,6 @@ def generate_launch_description():
         bag_filename_arg,
         # Nodes
         backpack_3d_launch,
-        # rviz_node,
+        rviz_node,
         ros2_bag_play_cmd
     ])
