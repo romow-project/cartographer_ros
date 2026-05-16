@@ -17,6 +17,7 @@
 #include "cartographer_ros/metrics/internal/histogram.h"
 
 #include <algorithm>
+#include <mutex>
 #include <numeric>
 
 #include "glog/logging.h"
@@ -24,14 +25,12 @@
 namespace cartographer_ros {
 namespace metrics {
 
-using BucketBoundaries = ::cartographer::metrics::Histogram::BucketBoundaries;
-
 Histogram::Histogram(const std::map<std::string, std::string>& labels,
                      const BucketBoundaries& bucket_boundaries)
     : labels_(labels),
       bucket_boundaries_(bucket_boundaries),
       bucket_counts_(bucket_boundaries.size() + 1) {
-  absl::MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   CHECK(std::is_sorted(std::begin(bucket_boundaries_),
                        std::end(bucket_boundaries_)));
 }
@@ -41,13 +40,13 @@ void Histogram::Observe(double value) {
       std::distance(bucket_boundaries_.begin(),
                     std::upper_bound(bucket_boundaries_.begin(),
                                      bucket_boundaries_.end(), value));
-  absl::MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   sum_ += value;
   bucket_counts_[bucket_index] += 1;
 }
 
 std::map<double, double> Histogram::CountsByBucket() {
-  absl::MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   std::map<double, double> counts_by_bucket;
   // Add the finite buckets.
   for (size_t i = 0; i < bucket_boundaries_.size(); ++i) {
@@ -59,12 +58,12 @@ std::map<double, double> Histogram::CountsByBucket() {
 }
 
 double Histogram::Sum() {
-  absl::MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   return sum_;
 }
 
 double Histogram::CumulativeCount() {
-  absl::MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   return std::accumulate(bucket_counts_.begin(), bucket_counts_.end(), 0.);
 }
 

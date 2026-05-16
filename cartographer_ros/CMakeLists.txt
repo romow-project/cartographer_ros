@@ -65,7 +65,9 @@ include(FindPkgConfig)
 pkg_search_module(CAIRO REQUIRED cairo>=1.12.16)
 
 # Library
-add_library(${PROJECT_NAME} STATIC
+# Use SHARED library to ensure proper symbol resolution
+add_library(${PROJECT_NAME} SHARED
+  src/abseil_compat.cpp
   src/assets_writer.cpp
   src/map_builder_bridge.cpp
   src/msg_conversion.cpp
@@ -106,10 +108,25 @@ else()
   target_link_libraries(${PROJECT_NAME} PRIVATE pcl_conversions::pcl_conversions)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+# Link abseil before cartographer to override older versions
+set(ABSEIL_LIBS
+  absl::base
   absl::synchronization
+  absl::log
+  absl::log_internal_check_op
+  absl::strings
+  absl::flags
+  absl::flags_parse
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  -Wl,--no-as-needed
+  ${ABSEIL_LIBS}
+  -Wl,--as-needed
   ${builtin_interfaces_TARGETS}
-  cartographer
+  -Wl,--no-as-needed
+  -Wl,--whole-archive cartographer -Wl,--no-whole-archive
+  -Wl,--as-needed
   ${cartographer_ros_msgs_TARGETS}
   ${geometry_msgs_TARGETS}
   ${nav_msgs_TARGETS}
@@ -119,6 +136,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   ${sensor_msgs_TARGETS}
   tf2_ros::tf2_ros
   ${visualization_msgs_TARGETS}
+)
+
+# Ensure all symbols are properly exported
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  LINK_FLAGS "-Wl,--copy-dt-needed-entries"
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${CAIRO_LIBRARIES}
@@ -138,6 +160,11 @@ target_include_directories(cartographer_node PRIVATE
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
 target_link_libraries(cartographer_node PRIVATE
+  absl::base
+  absl::synchronization
+  absl::log
+  absl::log_internal_check_op
+  absl::strings
   ${PROJECT_NAME}
   absl::memory
   cartographer

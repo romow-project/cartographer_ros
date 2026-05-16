@@ -30,6 +30,7 @@
 #include "cartographer_ros/node_options.h"
 #include "cartographer_ros/sensor_bridge.h"
 #include "cartographer_ros/tf_bridge.h"
+#include "cartographer_ros/thread_safe_annotations.h"
 #include "cartographer_ros/trajectory_options.h"
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"

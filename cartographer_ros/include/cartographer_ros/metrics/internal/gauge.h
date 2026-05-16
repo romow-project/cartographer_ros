@@ -18,11 +18,12 @@
 #define CARTOGRAPHER_ROS_METRICS_INTERNAL_GAUGE_H
 
 #include <map>
+#include <mutex>
 #include <string>
 
-#include "absl/synchronization/mutex.h"
 #include "cartographer/metrics/gauge.h"
 #include "cartographer_ros_msgs/msg/metric.hpp"
+#include "cartographer_ros/thread_safe_annotations.h"
 
 namespace cartographer_ros {
 namespace metrics {
@@ -41,12 +42,12 @@ class Gauge : public ::cartographer::metrics::Gauge {
   void Increment() override { Increment(1.); }
 
   void Set(double value) override {
-    absl::MutexLock lock(&mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     value_ = value;
   }
 
   double Value() {
-    absl::MutexLock lock(&mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     return value_;
   }
 
@@ -65,11 +66,11 @@ class Gauge : public ::cartographer::metrics::Gauge {
 
  private:
   void Add(const double value) {
-    absl::MutexLock lock(&mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     value_ += value;
   }
 
-  absl::Mutex mutex_;
+  std::mutex mutex_;
   const std::map<std::string, std::string> labels_;
   double value_ GUARDED_BY(mutex_);
 };

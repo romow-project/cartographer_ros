@@ -15,12 +15,12 @@
  */
 
 #include <cmath>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
-#include "absl/synchronization/mutex.h"
 #include "cairo/cairo.h"
 #include "cartographer/common/port.h"
 #include "cartographer/io/image.h"
@@ -31,6 +31,7 @@
 #include "cartographer_ros/node_constants.h"
 #include "cartographer_ros/ros_log_sink.h"
 #include "cartographer_ros/submap.h"
+#include "cartographer_ros/thread_safe_annotations.h"
 #include "cartographer_ros_msgs/msg/submap_entry.hpp"
 #include "cartographer_ros_msgs/msg/submap_list.hpp"
 #include "cartographer_ros_msgs/srv/submap_query.hpp"
@@ -71,7 +72,7 @@ class Node : public rclcpp::Node
 
   const double resolution_;
 
-  absl::Mutex mutex_;
+  std::mutex mutex_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor::SharedPtr callback_group_executor_;
   ::rclcpp::Client<cartographer_ros_msgs::srv::SubmapQuery>::SharedPtr client_ GUARDED_BY(mutex_);
@@ -114,7 +115,7 @@ Node::Node(const double resolution, const double publish_period_sec)
   auto handleSubmapList =
     [this, publish_period_sec](const typename cartographer_ros_msgs::msg::SubmapList::SharedPtr msg) -> void
     {
-    absl::MutexLock locker(&mutex_);
+    std::lock_guard<std::mutex> locker(mutex_);
 
     // We do not do any work if nobody listens.
     if (this->count_publishers(kSubmapListTopic) == 0){
@@ -180,7 +181,7 @@ Node::Node(const double resolution, const double publish_period_sec)
 }
 
 void Node::DrawAndPublish() {
-  absl::MutexLock locker(&mutex_);
+  std::lock_guard<std::mutex> locker(mutex_);
   if (submap_slices_.empty() || last_frame_id_.empty()) {
     return;
   }

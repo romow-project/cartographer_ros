@@ -18,11 +18,12 @@
 #define CARTOGRAPHER_ROS_METRICS_INTERNAL_HISTOGRAM_H
 
 #include <map>
+#include <mutex>
 #include <vector>
 
-#include "absl/synchronization/mutex.h"
 #include "cartographer/metrics/histogram.h"
 #include "cartographer_ros_msgs/msg/metric.hpp"
+#include "cartographer_ros/thread_safe_annotations.h"
 
 namespace cartographer_ros {
 namespace metrics {
@@ -47,7 +48,7 @@ class Histogram : public ::cartographer::metrics::Histogram {
   cartographer_ros_msgs::msg::Metric ToRosMessage();
 
  private:
-  absl::Mutex mutex_;
+  std::mutex mutex_;
   const std::map<std::string, std::string> labels_;
   const BucketBoundaries bucket_boundaries_;
   std::vector<double> bucket_counts_ GUARDED_BY(mutex_);
