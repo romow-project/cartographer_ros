@@ -303,6 +303,31 @@ install(DIRECTORY configuration_files urdf launch
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Create symlinks to cartographer's Lua configuration files
+# These are needed because the cartographer_ros configuration files
+# include files from the cartographer package (map_builder.lua, trajectory_builder.lua, etc.)
+install(CODE "
+  set(CONFIG_DIR \"\${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/configuration_files\")
+  set(CARTOGRAPHER_CONFIG_DIR \"${CARTOGRAPHER_INSTALL_PREFIX}/share/cartographer/configuration_files\")
+  
+  # Try to find cartographer configuration directory
+  if(NOT CARTOGRAPHER_CONFIG_DIR OR NOT EXISTS \"\${CARTOGRAPHER_CONFIG_DIR}\")
+    # Try the conda prefix location
+    if(DEFINED ENV{CONDA_PREFIX})
+      set(CARTOGRAPHER_CONFIG_DIR \"\$ENV{CONDA_PREFIX}/share/cartographer/configuration_files\")
+    endif()
+  endif()
+  
+  # Create symlinks if cartographer config directory is found
+  if(EXISTS \"\${CARTOGRAPHER_CONFIG_DIR}\")
+    foreach(FILE map_builder.lua trajectory_builder.lua pose_graph.lua trajectory_builder_2d.lua trajectory_builder_3d.lua)
+      if(EXISTS \"\${CARTOGRAPHER_CONFIG_DIR}/\${FILE}\")
+        execute_process(COMMAND ln -sf \"\${CARTOGRAPHER_CONFIG_DIR}/\${FILE}\" \"\${CONFIG_DIR}/\${FILE}\")
+      endif()
+    endforeach()
+  endif()
+")
+
 ament_export_targets(${PROJECT_NAME})
 ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_libraries(${PROJECT_NAME})
